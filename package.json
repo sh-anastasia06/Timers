@@ -15,7 +15,7 @@
     "lint:all": "eslint \"**/*.js\""
   },
   "engines": {
-    "node": "20.x"
+    "node": ">=12"
   },
   "devDependencies": {
     "@babel/core": "^7.9.0",
