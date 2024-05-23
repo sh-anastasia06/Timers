@@ -56,7 +56,6 @@
   "homepage": "https://github.com/emirotin/node-template#readme",
   "dependencies": {
     "body-parser": "^1.20.2",
-    "cookie": "^0.6.0",
     "cookie-parser": "^1.4.6",
     "cross-env": "^7.0.3",
     "crypto": "^1.0.1",
@@ -65,7 +64,6 @@
     "migrate-mongo": "^8.1.1",
     "mongodb": "^3.6.0",
     "nanoid": "^3.1.10",
-    "nunjucks": "^3.2.1",
-    "ws": "^8.17.0"
+    "nunjucks": "^3.2.1"
   }
 }

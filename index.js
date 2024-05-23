@@ -1,5 +1,4 @@
 require("dotenv").config();
-require('events').EventEmitter.defaultMaxListeners = 20;
 
 const express = require("express");
 const nunjucks = require("nunjucks");
@@ -7,10 +6,7 @@ const { customAlphabet } = require("nanoid");
 const nanoid = customAlphabet("1234567890", 12);
 const crypto = require("crypto");
 const cookieParser = require("cookie-parser");
-const cookie = require("cookie")
 const bodyParser = require("body-parser");
-const { WebSocketServer } = require("ws");
-const {createServer} = require("http");
 
 const app = express();
 
@@ -34,6 +30,7 @@ nunjucks.configure("views", {
 });
 
 app.set("view engine", "njk");
+
 app.use(express.json());
 app.use(express.static("public"));
 app.use(cookieParser());
@@ -46,16 +43,12 @@ app.use(async (req, res, next) => {
     next(error);
   }
 });
-// eslint-disable-next-line no-unused-vars
-app.use((err, req, res, _next) => {
-  res.status(500).send(err.message);
-});
 
 const hash = (d) => crypto.createHash("sha256").update(d).digest("hex");
 
 const auth = () => async (req, res, next) => {
   if (!req.cookies["sessionId"]) {
-    return req.baseUrl === 'api/timers' ? res.sendStatus(401) : next();
+    return next();
   }
   const user = await findUserBySessionId(req.db, req.cookies["sessionId"]);
   req.user = user;
@@ -89,51 +82,10 @@ const deleteSession = async (db, sessionId) => {
   await db.collection("sessions").deleteOne({ sessionId });
 };
 
-// functions fo wss
-const sendTimers = async (db, userId, ws) => {
-  const timers = await db.collection("timers").find({ userId: userId }).toArray();
-
-  const timersUpdated = timers.map((t) => {
-    if (!t.end) {
-      return {
-        ...t,
-        start: +t.start,
-        progress: Date.now() - +t.start,
-      }
-    }
-    return {
-      ...t,
-      start: +t.start,
-      end: +t.end,
-      duration: +t.end - +t.start,
-    }
-  });
-
-  ws.send(
-    JSON.stringify({
-      type: 'all_timers',
-      timers: timersUpdated,
-    })
-  );
-}
-
-const getActiveTimers = async (db, userId) => {
-  const timers = await db.collection("timers").find({ userId: userId, isActive: true }).toArray();
-
-  return timers.map((t) => {
-    return {
-      ...t,
-      progress: Date.now() - t.start,
-    }
-  })
-}
-
 app.get("/", auth(), (req, res) => {
   res.render("index", {
     user: req.user,
     authError: req.query.authError === "true",
-    createdUser: req.query.user,
-    sessionId: req.sessionId,
   });
 });
 
@@ -211,6 +163,7 @@ app.post("/api/timers", auth(), async (req, res) => {
 
 app.post("/api/timers/:id/stop", auth(), async (req, res) => {
   const timerId = req.params.id;
+  console.log(timerId);
   const end = Date.now();
   const timer = await req.db
     .collection("timers")
@@ -219,61 +172,15 @@ app.post("/api/timers/:id/stop", auth(), async (req, res) => {
   res.json(timer);
 });
 
-const server = createServer(app);
-const wss = new WebSocketServer({ clientTracking: false, noServer: true });
-
-server.on('upgrade', async (req, socket, head) => {
-  const mongoClient = await clientPromise;
-  const db = mongoClient.db('users');
-  const cookies = cookie.parse(req.headers.cookie);
-  const sessionId = cookies['sessionId'];
-
-  const user = await findUserBySessionId(db, sessionId);
-  if (!user) {
-    socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
-    socket.destroy();
-    return;
-  }
-
-  req.db = db;
-  req.user = user;
-  
-  wss.handleUpgrade(req, socket, head, (ws) => {
-    wss.emit('connection', ws, req);
-  })
-});
-
-wss.on('connection', async (ws, req) => {
-  const userId = req.user._id;
-
-  await sendTimers(req.db, userId, ws);
-
-  setInterval(async () => {
-    const activeTimers = await getActiveTimers(req.db, userId);
-    ws.send(
-      JSON.stringify({
-        type: 'active_timers',
-        timers: activeTimers,
-      })
-    )
-  }, 1000);
-
-  ws.on('message', async (message) => {
-    let data;
-    try {
-      data = JSON.parse(message);
-    } catch (error) {
-      return;
-    }
-
-    if (data.message === 'get_timers') {
-      await sendTimers(req.db, userId, ws);
-    }
+app.get("/", auth(), (req, res) => {
+  res.render("index", {
+    user: req.user,
+    authError: req.query.authError === "true" ? "Wrong username or password" : req.query.authError,
   });
 });
 
 const port = process.env.PORT || 3000;
 
-server.listen(port, () => {
+app.listen(port, () => {
   console.log(`  Listening on http://localhost:${port}`);
 });

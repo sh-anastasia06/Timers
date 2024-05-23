@@ -1,5 +1,4 @@
 /*global UIkit, Vue */
-/* eslint-env browser */
 
 (() => {
   const notification = (config) =>
@@ -44,10 +43,15 @@
       oldTimers: [],
     },
     methods: {
-      getTimers() {
-        this.client.send(
-          JSON.stringify({ message: "get_timers" })
-        );
+      fetchActiveTimers() {
+        fetchJson("/api/timers?isActive=true").then((activeTimers) => {
+          this.activeTimers = activeTimers;
+        });
+      },
+      fetchOldTimers() {
+        fetchJson("/api/timers?isActive=false").then((oldTimers) => {
+          this.oldTimers = oldTimers;
+        });
       },
       createTimer() {
         const description = this.desc;
@@ -60,7 +64,7 @@
           body: JSON.stringify({ description }),
         }).then(({ id }) => {
           info(`Created new timer "${description}" [${id}]`);
-          this.getTimers();
+          this.fetchActiveTimers();
         });
       },
       stopTimer(id) {
@@ -68,7 +72,8 @@
           method: "post",
         }).then(() => {
           info(`Stopped the timer [${id}]`);
-          this.getTimers();
+          this.fetchActiveTimers();
+          this.fetchOldTimers();
         });
       },
       formatTime(ts) {
@@ -87,28 +92,11 @@
       },
     },
     created() {
-      const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const client = new WebSocket(`${wsProto}//${location.host}`);
-
-      this.client = client;
-
-      client.addEventListener('message', (message) => {
-        let data;
-        try {
-          data = JSON.parse(message.data);
-        } catch (error) {
-          return error;
-        }
-
-        if (data.type === 'all_timers') {
-          console.log('got all timers');
-          this.activeTimers = data.timers.filter((t) => t.isActive);
-          this.oldTimers = data.timers.filter((t) => !t.isActive);
-        } 
-        if (data.type === 'active_timers') {
-          this.activeTimers = data.timers;
-        }
-      })
+      this.fetchActiveTimers();
+      setInterval(() => {
+        this.fetchActiveTimers();
+      }, 1000);
+      this.fetchOldTimers();
     },
   });
 })();
