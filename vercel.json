@@ -4,11 +4,11 @@
     {
       "src": "./index.js",
       "use": "@vercel/node"
-    },
-    {
-      "src": "./views/index.njk",
-      "use": "@vercel/static"
     }
+    // {
+    //   "src": "./views/index.njk",
+    //   "use": "@vercel/static"
+    // }
   ],
   "routes": [
     {
