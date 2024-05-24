@@ -7,7 +7,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon index.js",
-    "build": "node index.js",
+    "start": "node index.js",
     "test": "echo \"Tests passed\" && exit 0",
     "prettify": "prettier --write",
     "prettify:all": "prettier --write \"./**/*.{js,json}\"",
