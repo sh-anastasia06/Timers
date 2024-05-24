@@ -64,6 +64,7 @@
     "migrate-mongo": "^8.1.1",
     "mongodb": "^3.6.0",
     "nanoid": "^3.1.10",
-    "nunjucks": "^3.2.1"
+    "nunjucks": "^3.2.1",
+    "vercel": "^32.3.0"
   }
 }
