@@ -9,12 +9,5 @@
       "src": "./views/index.njk",
       "use": "@vercel/static"
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "index.js",
-      "methods": ["GET", "POST", "PUT", "DELETE"]
-    }
   ]
 }
